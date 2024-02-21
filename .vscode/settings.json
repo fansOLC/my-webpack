@@ -1,0 +1,23 @@
+/**
+ * 项目中使用eslint和prettier，并且eslint和prettier的配置文件都放在根目录，如何设置vscode，使得vscode在保存文件的时候自动格式化代码并按照eslint和prettier的规则检查代码
+ * 注意：这个设置只针对vscode，如果你使用其他的编辑器，可能需要相应的设置
+ */
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.fixAll.tslint": "explicit"
+  },
+  "editor.formatOnSave": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}
