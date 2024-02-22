@@ -513,8 +513,77 @@ function Arrange() {
         column.classList.add('disabled'); // 添加禁用样式
       }
     });
-    dragDataRef.current = { columnIndex, dayIndex: dayItemIndex, data };
+    dragDataRef.current = {
+      columnIndex,
+      dayIndex: dayItemIndex,
+      el: event.target,
+      data,
+    };
   };
+
+  const calcMousePosition = (event) => {
+    // 获取元素的高度
+    const elementHeight = event.target.clientHeight;
+
+    // 计算鼠标相对于元素顶部的距离
+    const mouseY = event.clientY - event.target.getBoundingClientRect().top;
+
+    // 计算鼠标经过元素高度的百分比
+    const mousePercentage = (mouseY / elementHeight) * 100;
+    return mousePercentage;
+  };
+
+  function createNewElement() {
+    const newElement = document.createElement('div');
+    newElement.textContent = '新元素';
+    newElement.classList.add('new-element');
+    newElement.classList.add(style.dayItemChild);
+    return newElement;
+  }
+
+  function insertElementAbove(target) {
+    const parentElement = target.parentElement;
+    const newElement = createNewElement();
+    parentElement.insertBefore(newElement, target);
+  }
+
+  function insertElementBelow(target) {
+    const parentElement = target.parentElement;
+    const newElement = createNewElement();
+    parentElement.insertBefore(newElement, target.nextSibling);
+    console.log('parentElement.offsetHeight', parentElement.offsetHeight);
+    parentElement.style.height =
+      parentElement.offsetHeight + dragDataRef.current.el.offsetHeight + 'px';
+    console.log('parentElement.style.height', parentElement.style.height);
+    calcLineHeight();
+  }
+
+  function removeNewElement() {
+    const newElement = document.querySelector('.new-element');
+    if (newElement) {
+      newElement.remove();
+    }
+  }
+
+  // 判断该元素上面的一个兄弟元素是否是类名为.new-element元素
+  function isPreviousElementNewElement(targetElement) {
+    const previousSibling = targetElement.previousElementSibling;
+    if (previousSibling && previousSibling.classList.contains('new-element')) {
+      console.log('上一个元素为new');
+      return true;
+    }
+    return false;
+  }
+
+  // 判断该元素下面的一个兄弟元素是否是类名为.new-element元素
+  function isNextElementNewElement(targetElement) {
+    const nextSibling = targetElement.nextElementSibling;
+    if (nextSibling && nextSibling.classList.contains('new-element')) {
+      console.log('下一个元素为new');
+      return true;
+    }
+    return false;
+  }
 
   const handleDragOver = (
     event: any,
@@ -523,15 +592,34 @@ function Arrange() {
     subjectId: number,
   ) => {
     event.preventDefault();
+    // 不是同一列、同一天、单元格内无元素都不处理
     if (
       (dragDataRef.current &&
         dragDataRef.current.columnIndex !== columnIndex) ||
-      (dragDataRef.current && dragDataRef.current.dayIndex === dayIndex)
+      (dragDataRef.current && dragDataRef.current.dayIndex === dayIndex) ||
+      hasLineClass(event.target)
     ) {
       return;
     }
-    console.log('over=========');
-    console.log('event.target', event.target);
+    if (event.target.classList.contains('new-element')) {
+      return;
+    }
+    const distance = calcMousePosition(event);
+    // const isHasElement = document.querySelector('.new-element');
+    // if (isHasElement) {
+    //   return;
+    // }
+    if (distance <= 50 && !isPreviousElementNewElement(event.target)) {
+      console.log('top--------无元素');
+      removeNewElement();
+      // 动态生成一个元素，插入该元素上方
+      insertElementAbove(event.target);
+    } else if (distance > 50 && !isNextElementNewElement(event.target)) {
+      console.log('down--------无元素');
+      removeNewElement();
+      // 动态生成一个元素，插入该元素下方
+      insertElementBelow(event.target);
+    }
   };
 
   const clearDropStyle = () => {
@@ -539,6 +627,14 @@ function Arrange() {
       el.classList.remove('drop-over');
     });
   };
+
+  function hasLineClass(target) {
+    // 匹配以 "line" 开头的类名
+    const regex = /^line\d+$/;
+    return Array.from(target.classList).some((className) =>
+      regex.test(className),
+    );
+  }
 
   const handleDragEnter = (
     event: any,
@@ -549,11 +645,14 @@ function Arrange() {
     event.preventDefault();
     // console.log('enter---event', event.target);
     clearDropStyle();
+    // removeNewElement();
     if (
       dragDataRef.current &&
-      dragDataRef.current.columnIndex === columnIndex
+      dragDataRef.current.columnIndex === columnIndex &&
+      // 目标元素含类名包含line
+      hasLineClass(event.target)
     ) {
-      event.target.classList.add('drop-over');
+      event.target.classList.add('drop-over'); // 可放置标识
     }
   };
 
@@ -565,6 +664,7 @@ function Arrange() {
     data: any,
   ) => {
     event.preventDefault();
+    removeNewElement();
     clearDropStyle();
     // 移除拖动时的样式类
     document.querySelectorAll('.dragging').forEach((el) => {
