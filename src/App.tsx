@@ -1,10 +1,4 @@
-import React, {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import style from './style.scss';
 
@@ -66,7 +60,7 @@ const mockTableData = [
     date: 1708444800000,
     contents: [
       {
-        title: '古诗鉴赏',
+        title: '古诗鉴赏古诗鉴赏古诗鉴赏古诗鉴赏古诗鉴赏',
         duration: 1000,
         parentContentId: 1312,
         contentUrl:
@@ -538,23 +532,41 @@ function Arrange() {
     newElement.textContent = '新元素';
     newElement.classList.add('new-element');
     newElement.classList.add(style.dayItemChild);
+    newElement.dataset.draggable = 'true';
     return newElement;
   }
 
+  // 传入一个元素，该元素高度设为其子元素高度之和
+  function setParentHeightToChildrenSum(parentElement) {
+    const children = parentElement.children;
+    let totalHeight = 0;
+
+    // 计算所有子元素的高度之和
+    for (let i = 0; i < children.length; i++) {
+      totalHeight += children[i].offsetHeight;
+    }
+
+    // 设置父元素的高度为子元素高度之和
+    parentElement.style.height = totalHeight + 'px';
+  }
+
   function insertElementAbove(target) {
+    removeNewElement();
     const parentElement = target.parentElement;
     const newElement = createNewElement();
     parentElement.insertBefore(newElement, target);
+    // 父元素高度设置为所有子元素高度之和
+    setParentHeightToChildrenSum(parentElement);
+    calcLineHeight();
   }
 
   function insertElementBelow(target) {
+    removeNewElement();
     const parentElement = target.parentElement;
     const newElement = createNewElement();
     parentElement.insertBefore(newElement, target.nextSibling);
-    console.log('parentElement.offsetHeight', parentElement.offsetHeight);
-    parentElement.style.height =
-      parentElement.offsetHeight + dragDataRef.current.el.offsetHeight + 'px';
-    console.log('parentElement.style.height', parentElement.style.height);
+    // 父元素高度设置为所有子元素高度之和
+    setParentHeightToChildrenSum(parentElement);
     calcLineHeight();
   }
 
@@ -592,31 +604,26 @@ function Arrange() {
     subjectId: number,
   ) => {
     event.preventDefault();
-    // 不是同一列、同一天、单元格内无元素都不处理
+
+    // TODO:兄弟元素拖拽
+
+    // 不是同一列、同一天、单元格内无元素、在虚拟元素上方都不处理
     if (
       (dragDataRef.current &&
         dragDataRef.current.columnIndex !== columnIndex) ||
       (dragDataRef.current && dragDataRef.current.dayIndex === dayIndex) ||
-      hasLineClass(event.target)
+      hasLineClass(event.target) ||
+      event.target.classList.contains('new-element')
     ) {
       return;
     }
-    if (event.target.classList.contains('new-element')) {
-      return;
-    }
     const distance = calcMousePosition(event);
-    // const isHasElement = document.querySelector('.new-element');
-    // if (isHasElement) {
-    //   return;
-    // }
     if (distance <= 50 && !isPreviousElementNewElement(event.target)) {
       console.log('top--------无元素');
-      removeNewElement();
       // 动态生成一个元素，插入该元素上方
       insertElementAbove(event.target);
     } else if (distance > 50 && !isNextElementNewElement(event.target)) {
       console.log('down--------无元素');
-      removeNewElement();
       // 动态生成一个元素，插入该元素下方
       insertElementBelow(event.target);
     }
@@ -643,9 +650,7 @@ function Arrange() {
     subjectId: number,
   ) => {
     event.preventDefault();
-    // console.log('enter---event', event.target);
     clearDropStyle();
-    // removeNewElement();
     if (
       dragDataRef.current &&
       dragDataRef.current.columnIndex === columnIndex &&
@@ -656,6 +661,27 @@ function Arrange() {
     }
   };
 
+  // 参数为元素类名，返回一个对象：该元素前一个元素属性data-contentid值及后一个
+  function getContentIds(className: string) {
+    console.log('className', className);
+    const element = document.querySelector(`.${className}`);
+    console.log('element', element);
+    if (!element) {
+      return null; // 如果找不到对应类名的元素，则返回 null
+    }
+
+    const prevElement = element.previousElementSibling;
+    const nextElement = element.nextElementSibling;
+
+    const prevContentId = prevElement ? prevElement?.dataset?.contentid : null;
+    const nextContentId = nextElement ? nextElement?.dataset?.contentid : null;
+
+    return {
+      prevContentId,
+      nextContentId,
+    };
+  }
+
   const handleDrop = (
     event: any,
     columnIndex: number,
@@ -664,7 +690,6 @@ function Arrange() {
     data: any,
   ) => {
     event.preventDefault();
-    removeNewElement();
     clearDropStyle();
     // 移除拖动时的样式类
     document.querySelectorAll('.dragging').forEach((el) => {
@@ -675,15 +700,46 @@ function Arrange() {
     columns.forEach((column) => {
       column.classList.remove('disabled'); // 移除禁用样式
     });
-    // 修改数据源
     if (
       !dragDataRef.current ||
       dragDataRef.current.columnIndex !== columnIndex
     ) {
+      removeNewElement();
       return;
     }
     const tempdata = JSON.parse(JSON.stringify(tableData));
-    tempdata[dayIndex].contents.push(dragDataRef.current.data);
+    // 该放置元素是否为动态生成的占位元素new-element
+    const isNewElement = event.target?.classList?.contains('new-element');
+    if (isNewElement) {
+      // 得到其序号
+      const indexObj = getContentIds('new-element');
+      console.log('indexObj', indexObj);
+      if (indexObj?.prevContentId) {
+        // 插入到前一个元素之后
+        const tempIndex = tempdata[dayIndex].contents.findIndex(
+          (d) => String(d.contentId) === String(indexObj.prevContentId),
+        );
+        tempdata[dayIndex].contents.splice(
+          tempIndex + 1,
+          0,
+          dragDataRef.current.data,
+        );
+      } else if (indexObj?.nextContentId) {
+        // 插入到后一个元素之前;
+        const tempIndex = tempdata[dayIndex].contents.findIndex(
+          (d) => String(d.contentId) === String(indexObj.nextContentId),
+        );
+        tempdata[dayIndex].contents.splice(
+          tempIndex,
+          0,
+          dragDataRef.current.data,
+        );
+      }
+    } else {
+      tempdata[dayIndex].contents.push(dragDataRef.current.data);
+    }
+    // 修改数据源
+
     const deleteIndex = tempdata[
       dragDataRef.current.dayIndex
     ].contents.findIndex(
@@ -691,6 +747,7 @@ function Arrange() {
     );
     tempdata[dragDataRef.current?.dayIndex].contents.splice(deleteIndex, 1);
     setTableData(tempdata);
+    removeNewElement();
   };
 
   return (
@@ -747,6 +804,7 @@ function Arrange() {
                     <div
                       draggable
                       key={i}
+                      data-contentid={c.contentId}
                       className={style.dayItemChild}
                       onDragStart={(event) =>
                         handleDragStart(
