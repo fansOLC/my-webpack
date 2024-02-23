@@ -597,6 +597,21 @@ function Arrange() {
     return false;
   }
 
+  // 下方是不是自己
+  function isBelowSelf(targetElement: HTMLElement) {
+    if (!targetElement || !dragDataRef.current) return;
+    const targetContentId = targetElement.dataset?.contentid;
+    if (
+      String(targetContentId) === String(dragDataRef.current?.data?.contentId)
+    ) {
+      // 下方是自己
+      return true;
+    } else {
+      // 下方是兄弟
+      return false;
+    }
+  }
+
   const handleDragOver = (
     event: any,
     columnIndex: number,
@@ -605,25 +620,36 @@ function Arrange() {
   ) => {
     event.preventDefault();
 
-    // TODO:兄弟元素拖拽
-
-    // 不是同一列、同一天、单元格内无元素、在虚拟元素上方都不处理
+    // 不是同一列||在虚拟元素上方||单元格内无子元素都不处理
     if (
-      (dragDataRef.current &&
-        dragDataRef.current.columnIndex !== columnIndex) ||
-      (dragDataRef.current && dragDataRef.current.dayIndex === dayIndex) ||
+      !dragDataRef?.current ||
+      dragDataRef?.current?.columnIndex !== columnIndex ||
       hasLineClass(event.target) ||
       event.target.classList.contains('new-element')
     ) {
       return;
     }
+
+    // 兄弟元素拖拽
+    if (
+      dragDataRef.current &&
+      dragDataRef.current.columnIndex === columnIndex &&
+      dragDataRef.current.dayIndex === dayIndex
+    ) {
+      console.log('event.target', event.target);
+      const isSelf = isBelowSelf(event.target);
+      if (isSelf) {
+        return;
+      }
+      // return;
+    }
+
+    // 跨单元格拖拽
     const distance = calcMousePosition(event);
     if (distance <= 50 && !isPreviousElementNewElement(event.target)) {
-      console.log('top--------无元素');
       // 动态生成一个元素，插入该元素上方
       insertElementAbove(event.target);
     } else if (distance > 50 && !isNextElementNewElement(event.target)) {
-      console.log('down--------无元素');
       // 动态生成一个元素，插入该元素下方
       insertElementBelow(event.target);
     }
@@ -663,9 +689,7 @@ function Arrange() {
 
   // 参数为元素类名，返回一个对象：该元素前一个元素属性data-contentid值及后一个
   function getContentIds(className: string) {
-    console.log('className', className);
     const element = document.querySelector(`.${className}`);
-    console.log('element', element);
     if (!element) {
       return null; // 如果找不到对应类名的元素，则返回 null
     }
@@ -700,9 +724,11 @@ function Arrange() {
     columns.forEach((column) => {
       column.classList.remove('disabled'); // 移除禁用样式
     });
+    console.log('isBelowSelf(event.target)', isBelowSelf(event.target));
     if (
       !dragDataRef.current ||
-      dragDataRef.current.columnIndex !== columnIndex
+      dragDataRef.current.columnIndex !== columnIndex ||
+      isBelowSelf(event.target)
     ) {
       removeNewElement();
       return;
@@ -742,7 +768,7 @@ function Arrange() {
 
     const deleteIndex = tempdata[
       dragDataRef.current.dayIndex
-    ].contents.findIndex(
+    ].contents.findLastIndex(
       (v) => v.contentId === dragDataRef.current?.data?.contentId,
     );
     tempdata[dragDataRef.current?.dayIndex].contents.splice(deleteIndex, 1);
