@@ -49,26 +49,53 @@
           }
         }
       }
-      :global {
-        .dragging {
-          background-color: green;
-        }
-        .drop-over {
-          background: #000;
-        }
-        .disabled {
-          background: #eee;
-        }
-        .new-element {
-          height: 60px;
-          border: 1px solid #f00;
-        }
-      }
     }
   }
 
   .right {
     border: 1px solid #eee;
     width: 30%;
+    .subjectName {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 5px;
+      border-bottom: 1px solid #eee;
+      margin-bottom: 10px;
+      >span {
+        margin-right: 10px;
+        border-radius: 5px;
+        padding: 5px;
+        &.activeSubject {
+          background-color: #5A8BFF;
+          color: #fff;
+        }
+      }
+    }
+    .subjectContents {
+      .resourceItem {
+        padding: 20px;
+        border: 1px solid #eee;
+        margin-bottom: 5px;
+      }
+    }
   }
+    :global {
+      .dragging {
+        background-color: green;
+      }
+  
+      .drop-over {
+        background: #000;
+      }
+  
+      .disabled {
+        background: #eee;
+      }
+  
+      .new-element {
+        height: 60px;
+        border: 1px solid #f00;
+        transition: all 0.2s;
+      }
+    }
 }

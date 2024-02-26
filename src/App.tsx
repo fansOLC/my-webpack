@@ -1,12 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import style from './style.scss';
+import useDropZone from './hooks/useDropZone';
 
 type DragData = {
   columnIndex: number;
-  dayIndex: number;
+  dayIndex: number | null; // null从资源池拖拽
   data: any;
+  el: HTMLElement;
 };
+
+type ISubjectData = {
+  subjectId: number;
+  subjectName: string;
+  contents: any[];
+  daySort?: null;
+  date?: null;
+};
+
+// TODO:动画、资源池
 
 const mockTableData = [
   {
@@ -59,24 +71,24 @@ const mockTableData = [
     daySort: null,
     date: 1708444800000,
     contents: [
-      {
-        title: '古诗鉴赏古诗鉴赏古诗鉴赏古诗鉴赏古诗鉴赏',
-        duration: 1000,
-        parentContentId: 1312,
-        contentUrl:
-          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=1312&lessonId=3093',
-        contentId: '1111',
-        subjectId: 1,
-        subjectName: '语文',
-        contentType: 1,
-        contentName: '课程讲',
-        courseOrder: 0,
-        interactiveVideo: false,
-        resourceKey: '3093-1-538203183672175333',
-        contentKey: '1-3093',
-        paperType: false,
-        videoType: true,
-      },
+      // {
+      //   title: '古诗鉴赏古诗鉴赏古诗鉴赏古诗鉴赏古诗鉴赏',
+      //   duration: 1000,
+      //   parentContentId: 1312,
+      //   contentUrl:
+      //     'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=1312&lessonId=3093',
+      //   contentId: '1111',
+      //   subjectId: 1,
+      //   subjectName: '语文',
+      //   contentType: 1,
+      //   contentName: '课程讲',
+      //   courseOrder: 0,
+      //   interactiveVideo: false,
+      //   resourceKey: '3093-1-538203183672175333',
+      //   contentKey: '1-3093',
+      //   paperType: false,
+      //   videoType: true,
+      // },
       {
         title: '语文-ModelForm操作及验证-1',
         duration: 776,
@@ -373,80 +385,379 @@ const subjects = [
     subjectName: '语文',
     daySort: null,
     date: null,
-    contents: [],
+    contents: [
+      {
+        title: 'B端测试-导学案地理2',
+        duration: 1046,
+        parentContentId: 1312,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=1312&lessonId=3093',
+        contentId: '30932',
+        subjectId: 1,
+        subjectName: '语文',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '3093-1-54334002781445093',
+        contentKey: '1-3093',
+        paperType: false,
+        videoType: true,
+      },
+      {
+        title: '晓蕾测试语文03-有导学案2',
+        duration: 1327,
+        parentContentId: 1314,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=1314&lessonId=2811',
+        contentId: '28112',
+        subjectId: 1,
+        subjectName: '语文',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '2811-1-54334002781451840',
+        contentKey: '1-2811',
+        paperType: false,
+        videoType: true,
+      },
+    ],
   },
   {
     subjectId: 2,
     subjectName: '数学',
     daySort: null,
     date: null,
-    contents: [],
+    contents: [
+      {
+        title: '语文-ModelForm操作及验证-12',
+        duration: 776,
+        parentContentId: 1286,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=1286&lessonId=3052',
+        contentId: '30522',
+        subjectId: 2,
+        subjectName: '数学',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '3052-1-54334002781455330',
+        contentKey: '1-3052',
+        paperType: false,
+        videoType: true,
+      },
+      {
+        title: '语文-ModelForm操作及验证-22',
+        duration: 1568,
+        parentContentId: 1286,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=1286&lessonId=3053',
+        contentId: '30532',
+        subjectId: 2,
+        subjectName: '数学',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '3053-1-54334002781457430',
+        contentKey: '1-3053',
+        paperType: false,
+        videoType: true,
+      },
+    ],
   },
   {
     subjectId: 3,
     subjectName: '英语',
     daySort: null,
     date: null,
-    contents: [],
+    contents: [
+      {
+        title: 'B端测试-英语导学案2',
+        duration: 2880,
+        parentContentId: 1306,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=1306&lessonId=3089',
+        contentId: '30892',
+        subjectId: 3,
+        subjectName: '英语',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '3089-1-54334002781461073',
+        contentKey: '1-3089',
+        paperType: false,
+        videoType: true,
+      },
+      {
+        title:
+          'bbb鲍小鱼包0916-是的话房价快速单号福建客户的数据库返回就肯定是放假看电视接口返回到数据库和放假看电视福建客户的数据库返回就肯定是放假看电视就开始是是是打飞机可给对方和高级开会打飞机可刚发的刚发2',
+        duration: 5,
+        parentContentId: 1232,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=1232&lessonId=2651',
+        contentId: '26512',
+        subjectId: 3,
+        subjectName: '英语',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '2651-1-54334002781463606',
+        contentKey: '1-2651',
+        paperType: false,
+        videoType: true,
+      },
+    ],
   },
   {
     subjectId: 5,
     subjectName: '化学',
     daySort: null,
     date: null,
-    contents: [],
+    contents: [
+      {
+        title: 'zzj-导学案-化学12',
+        duration: 8,
+        parentContentId: 1241,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=1241&lessonId=2667',
+        contentId: '26672',
+        subjectId: 5,
+        subjectName: '化学',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '2667-1-54334002781484675',
+        contentKey: '1-2667',
+        paperType: false,
+        videoType: true,
+      },
+    ],
   },
   {
     subjectId: 7,
     subjectName: '政治',
     daySort: null,
     date: null,
-    contents: [],
+    contents: [
+      {
+        title: '董妙妙1232',
+        duration: 175,
+        parentContentId: 877,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=877&lessonId=2010',
+        contentId: '20102',
+        subjectId: 7,
+        subjectName: '政治',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '2010-1-54334002781489355',
+        contentKey: '1-2010',
+        paperType: false,
+        videoType: true,
+      },
+      {
+        title: 'test12',
+        duration: 175,
+        parentContentId: 877,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=877&lessonId=2019',
+        contentId: '20192',
+        subjectId: 7,
+        subjectName: '政治',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '2019-1-54334002781492949',
+        contentKey: '1-2019',
+        paperType: false,
+        videoType: true,
+      },
+    ],
   },
   {
     subjectId: 8,
     subjectName: '历史',
     daySort: null,
     date: null,
-    contents: [],
+    contents: [
+      {
+        title: '中国古代科技史2',
+        duration: 175,
+        parentContentId: 527,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=527&lessonId=766',
+        contentId: '7662',
+        subjectId: 8,
+        subjectName: '历史',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '766-1-54334002781498208',
+        contentKey: '1-766',
+        paperType: false,
+        videoType: true,
+      },
+    ],
   },
   {
     subjectId: 9,
     subjectName: '地理',
     daySort: null,
     date: null,
-    contents: [],
+    contents: [
+      {
+        title: 'liujw测试课程讲(勿动)私有2',
+        duration: 4,
+        parentContentId: 1296,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=1296&lessonId=3079',
+        contentId: '30792',
+        subjectId: 9,
+        subjectName: '地理',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '3079-1-54334002781502846',
+        contentKey: '1-3079',
+        paperType: false,
+        videoType: true,
+      },
+      {
+        title: '测试-私有2',
+        duration: 120,
+        parentContentId: 1296,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=1296&lessonId=3081',
+        contentId: '30812',
+        subjectId: 9,
+        subjectName: '地理',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '3081-1-54334002781505866',
+        contentKey: '1-3081',
+        paperType: false,
+        videoType: true,
+      },
+    ],
   },
   {
     subjectId: 10,
     subjectName: '心灵成长',
     daySort: null,
     date: null,
-    contents: [],
+    contents: [
+      {
+        title: '测试4442',
+        duration: 651,
+        contentUrl:
+          '//web.test.mistong.com/spiritual-growth/#/xinqing?fmId=303528',
+        contentId: '3035282',
+        subjectId: 10,
+        subjectName: '心灵成长',
+        contentType: 3,
+        contentName: 'FM',
+        courseOrder: 0,
+        resourceKey: '303528-3-54334002781510795',
+        contentKey: '3-303528',
+        paperType: false,
+        videoType: false,
+      },
+      {
+        title: '高中生学习力综合测评2',
+        duration: 1800,
+        contentId: '12',
+        subjectId: 10,
+        subjectName: '心灵成长',
+        contentType: 6,
+        contentName: '测评',
+        courseOrder: 0,
+        resourceKey: '1-6-54334002781514696',
+        contentKey: '6-1',
+        paperType: false,
+        videoType: false,
+      },
+    ],
   },
   {
     subjectId: 14,
     subjectName: '信息技术',
     daySort: null,
     date: null,
-    contents: [],
+    contents: [
+      {
+        title: '浴火重生-信息第三章节2',
+        duration: 175,
+        parentContentId: 222,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=222&lessonId=232',
+        contentId: '2322',
+        subjectId: 14,
+        subjectName: '信息技术',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '232-1-54334002781519563',
+        contentKey: '1-232',
+        paperType: false,
+        videoType: true,
+      },
+      {
+        title: '心态决定一切2',
+        duration: 175,
+        parentContentId: 222,
+        contentUrl:
+          'https://teacher.test.mistong.com/ewtbend/bend/index/index.html#/homework/play-videos?courseId=222&lessonId=235',
+        contentId: '2352',
+        subjectId: 14,
+        subjectName: '信息技术',
+        contentType: 1,
+        contentName: '课程讲',
+        courseOrder: 0,
+        interactiveVideo: false,
+        resourceKey: '235-1-54334002781522623',
+        contentKey: '1-235',
+        paperType: false,
+        videoType: true,
+      },
+    ],
   },
 ];
 
 function Arrange() {
   const [tableData, setTableData] = useState([]);
+  const [allSubjectData, setAllSubjectData] = useState<ISubjectData[]>([]);
+  const [activeSubjectId, setActiveSubjectId] = useState<number>(0);
   const dragDataRef = useRef<DragData>(null);
 
   const getTableData = () => {
     setTableData(mockTableData);
   };
+  const getAllSubjectData = () => {
+    setAllSubjectData(subjects);
+    setActiveSubjectId(subjects[0].subjectId);
+  };
   useEffect(() => {
     getTableData();
+    getAllSubjectData();
   }, []);
 
   const subjectData = useMemo(
     () =>
-      subjects.reduce((data, subject) => {
+      allSubjectData.reduce((data, subject) => {
         data[subject.subjectId] = tableData.map((row) => {
           if (
             !row.contents.length ||
@@ -458,7 +769,7 @@ function Arrange() {
         });
         return data;
       }, {}),
-    [tableData],
+    [tableData, allSubjectData],
   );
 
   // 计算每一行最高的高度，将每个元素置为最高
@@ -487,15 +798,13 @@ function Arrange() {
   }, [tableData]);
 
   const calcSubjectName = (subjectId: number) =>
-    subjects.find((s) => Number(s.subjectId) === Number(subjectId))
+    allSubjectData.find((s) => Number(s.subjectId) === Number(subjectId))
       ?.subjectName;
 
   const handleDragStart = (
     event: any,
     columnIndex: number,
-    dayItemIndex: number,
-    childIndex: number,
-    subjectId: number,
+    dayItemIndex: number | null,
     data: any,
   ) => {
     // 添加拖动时的样式类
@@ -591,7 +900,6 @@ function Arrange() {
   function isNextElementNewElement(targetElement) {
     const nextSibling = targetElement.nextElementSibling;
     if (nextSibling && nextSibling.classList.contains('new-element')) {
-      console.log('下一个元素为new');
       return true;
     }
     return false;
@@ -616,7 +924,6 @@ function Arrange() {
     event: any,
     columnIndex: number,
     dayIndex: number,
-    subjectId: number,
   ) => {
     event.preventDefault();
 
@@ -636,7 +943,6 @@ function Arrange() {
       dragDataRef.current.columnIndex === columnIndex &&
       dragDataRef.current.dayIndex === dayIndex
     ) {
-      console.log('event.target', event.target);
       const isSelf = isBelowSelf(event.target);
       if (isSelf) {
         return;
@@ -669,12 +975,7 @@ function Arrange() {
     );
   }
 
-  const handleDragEnter = (
-    event: any,
-    columnIndex: number,
-    childIndex: number,
-    subjectId: number,
-  ) => {
+  const handleDragEnter = (event: any, columnIndex: number) => {
     event.preventDefault();
     clearDropStyle();
     if (
@@ -683,6 +984,7 @@ function Arrange() {
       // 目标元素含类名包含line
       hasLineClass(event.target)
     ) {
+      removeNewElement();
       event.target.classList.add('drop-over'); // 可放置标识
     }
   };
@@ -706,13 +1008,7 @@ function Arrange() {
     };
   }
 
-  const handleDrop = (
-    event: any,
-    columnIndex: number,
-    dayIndex: number,
-    subjectId: number,
-    data: any,
-  ) => {
+  const handleDrop = (event: any, columnIndex: number, dayIndex: number) => {
     event.preventDefault();
     clearDropStyle();
     // 移除拖动时的样式类
@@ -724,7 +1020,6 @@ function Arrange() {
     columns.forEach((column) => {
       column.classList.remove('disabled'); // 移除禁用样式
     });
-    console.log('isBelowSelf(event.target)', isBelowSelf(event.target));
     if (
       !dragDataRef.current ||
       dragDataRef.current.columnIndex !== columnIndex ||
@@ -739,7 +1034,6 @@ function Arrange() {
     if (isNewElement) {
       // 得到其序号
       const indexObj = getContentIds('new-element');
-      console.log('indexObj', indexObj);
       if (indexObj?.prevContentId) {
         // 插入到前一个元素之后
         const tempIndex = tempdata[dayIndex].contents.findIndex(
@@ -764,30 +1058,96 @@ function Arrange() {
     } else {
       tempdata[dayIndex].contents.push(dragDataRef.current.data);
     }
-    // 修改数据源
 
-    const deleteIndex = tempdata[
-      dragDataRef.current.dayIndex
-    ].contents.findLastIndex(
-      (v) => v.contentId === dragDataRef.current?.data?.contentId,
-    );
-    tempdata[dragDataRef.current?.dayIndex].contents.splice(deleteIndex, 1);
+    if (dragDataRef.current.dayIndex === null) {
+      // 从资源池拖拽
+      const tempSubjectData = JSON.parse(JSON.stringify(allSubjectData));
+      const deleteIndex = tempSubjectData[columnIndex]?.contents?.findIndex(
+        (v) => v.contentId === dragDataRef.current?.data?.contentId,
+      );
+      tempSubjectData[columnIndex].contents.splice(deleteIndex, 1);
+      setAllSubjectData(tempSubjectData);
+    } else {
+      // 表格内拖拽
+      const deleteIndex = tempdata[
+        dragDataRef.current.dayIndex
+      ].contents.findLastIndex(
+        (v) => v.contentId === dragDataRef.current?.data?.contentId,
+      );
+      tempdata[dragDataRef.current?.dayIndex].contents.splice(deleteIndex, 1);
+    }
     setTableData(tempdata);
+    dragDataRef.current = null;
     removeNewElement();
   };
+
+  const handleSubjectClick = (subjectId: number) => {
+    setActiveSubjectId(subjectId);
+  };
+
+  const currSubjectDataIndex = useMemo(() => {
+    const index = allSubjectData.findIndex(
+      (v) => v.subjectId === activeSubjectId,
+    );
+    return index;
+  }, [allSubjectData, activeSubjectId]);
+
+  const handleDropOutside = () => {
+    // 拖拽元素放置在可放置区域外
+    // 移除拖动时的样式类
+    document.querySelectorAll('.dragging').forEach((el) => {
+      el.classList.remove('dragging');
+    });
+    // 移除其他列的禁用样式
+    const columns = document.querySelectorAll('[class*="column-"]');
+    columns.forEach((column) => {
+      column.classList.remove('disabled'); // 移除禁用样式
+    });
+    clearDropStyle();
+    removeNewElement();
+  };
+
+  useDropZone(style.columns, {
+    onDropInside: () => {
+      console.log('里面');
+    },
+    onDropOutside: handleDropOutside,
+    onDragOverOutside: () => {
+      console.log('拖拽元素放置在可放置区域外');
+      clearDropStyle();
+      removeNewElement();
+    },
+  });
 
   return (
     <div className={style.container} key={JSON.stringify(tableData)}>
       <div className={style.left}>
         <div className={style.columns}>
           <div className={style.column}>
-            <div className={classNames(style.dayItem, 'line1', style.first)}>
+            <div
+              className={classNames(style.dayItem, 'line1', style.first)}
+              onDrop={handleDropOutside}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                clearDropStyle();
+                removeNewElement();
+              }}
+            >
               天数/学科
             </div>
             {mockTableData?.map((d, index) => (
               <div
                 key={d.subjectId}
                 className={classNames(style.dayItem, `line${index + 2}`)}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                }}
+                onDragEnter={(event) => {
+                  event.preventDefault();
+                  clearDropStyle();
+                  removeNewElement();
+                }}
+                onDrop={handleDropOutside}
               >
                 第{index + 1}天
               </div>
@@ -798,7 +1158,18 @@ function Arrange() {
               className={classNames(style.column, `column-${columnIndex}`)}
               key={subjectId}
             >
-              <div className={classNames(style.dayItem, 'line1', style.first)}>
+              <div
+                className={classNames(style.dayItem, 'line1', style.first)}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                }}
+                onDragEnter={(event) => {
+                  event.preventDefault();
+                  clearDropStyle();
+                  removeNewElement();
+                }}
+                onDrop={handleDropOutside}
+              >
                 {calcSubjectName(Number(subjectId))}
               </div>
               {subjectData[subjectId]?.map((v, index: number) => (
@@ -806,25 +1177,10 @@ function Arrange() {
                   className={classNames(style.dayItem, `line${index + 2}`)}
                   key={index}
                   onDragOver={(event) =>
-                    handleDragOver(
-                      event,
-                      columnIndex,
-                      index,
-                      Number(subjectId),
-                      v,
-                    )
+                    handleDragOver(event, columnIndex, index)
                   }
-                  onDragEnter={(event) =>
-                    handleDragEnter(
-                      event,
-                      columnIndex,
-                      index,
-                      Number(subjectId),
-                    )
-                  }
-                  onDrop={(event) =>
-                    handleDrop(event, columnIndex, index, Number(subjectId), v)
-                  }
+                  onDragEnter={(event) => handleDragEnter(event, columnIndex)}
+                  onDrop={(event) => handleDrop(event, columnIndex, index)}
                 >
                   {v.map((c, i) => (
                     <div
@@ -833,14 +1189,7 @@ function Arrange() {
                       data-contentid={c.contentId}
                       className={style.dayItemChild}
                       onDragStart={(event) =>
-                        handleDragStart(
-                          event,
-                          columnIndex,
-                          index,
-                          i,
-                          Number(subjectId),
-                          c,
-                        )
+                        handleDragStart(event, columnIndex, index, c)
                       }
                     >
                       {c.title}
@@ -852,7 +1201,37 @@ function Arrange() {
           ))}
         </div>
       </div>
-      <div className={style.right}>右</div>
+      <div className={style.right}>
+        <div className={style.subjectName}>
+          {allSubjectData?.map((d) => (
+            <span
+              key={d.subjectId}
+              onClick={() => handleSubjectClick(d.subjectId)}
+              className={
+                d.subjectId === activeSubjectId
+                  ? style.activeSubject
+                  : undefined
+              }
+            >
+              {d.subjectName}({d?.contents?.length || 0})
+            </span>
+          ))}
+        </div>
+        <div className={style.subjectContents}>
+          {allSubjectData[currSubjectDataIndex]?.contents.map((d) => (
+            <div
+              className={style.resourceItem}
+              key={d.contentId}
+              draggable
+              onDragStart={(event) =>
+                handleDragStart(event, currSubjectDataIndex, null, d)
+              }
+            >
+              {d.title}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
