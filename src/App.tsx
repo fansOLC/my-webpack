@@ -1119,6 +1119,90 @@ function Arrange() {
     },
   });
 
+  // 表格内数据删除
+  const handleDeleteTableData = (
+    subjectId: number,
+    dayIndex?: number,
+    contentId?: string,
+  ) => {
+    const tempData = JSON.parse(JSON.stringify(tableData));
+    const tempSubjectData = JSON.parse(JSON.stringify(allSubjectData));
+    const allDeleteResources = [];
+    if (dayIndex !== undefined) {
+      // 删除一条数据
+      const tempContents = tempData[dayIndex].contents.filter(
+        (d) => d.contentId !== contentId,
+      );
+      // 找出当前天中要删除的资源
+      const deleteResources = tempData[dayIndex]?.contents?.filter(
+        (d) => d.contentId === contentId,
+      );
+      tempData[dayIndex].contents = tempContents;
+      allDeleteResources.push(...(deleteResources || []));
+    } else {
+      // 删除一列数据
+      tempData.forEach((item) => {
+        const tempContents = item?.contents?.filter(
+          (d) => d.subjectId !== subjectId,
+        );
+        // 找出当前天中要删除的资源
+        const deleteResources = item?.contents?.filter(
+          (d) => d.subjectId === subjectId,
+        );
+        item.contents = tempContents;
+        allDeleteResources.push(...(deleteResources || []));
+      });
+    }
+    setTableData(tempData);
+    // 更新待选
+    const index = tempSubjectData.findIndex(
+      (d) => Number(d.subjectId) === subjectId,
+    );
+    tempSubjectData[index].contents.push(...allDeleteResources);
+    setAllSubjectData(tempSubjectData);
+  };
+
+  // 可拖拽元素hover事件
+  const handleMouseEnter = (
+    event: MouseEvent,
+    subjectId: number,
+    dayIndex: number,
+    contentId: string,
+  ) => {
+    console.log('event.target', event.target);
+    const target = event.target as HTMLElement;
+    target.style.position = 'relative';
+    target.style.zIndex = '1000';
+    // 动态生成一个删除<span>删除</span>子元素
+    const deleteSpan = document.createElement('span');
+    deleteSpan.innerText = '删除';
+    deleteSpan.style.position = 'absolute';
+    deleteSpan.style.right = '0';
+    deleteSpan.style.bottom = '0';
+    deleteSpan.style.color = 'red';
+    deleteSpan.style.cursor = 'pointer';
+    deleteSpan.addEventListener('click', () => {
+      console.log('删除');
+      handleDeleteTableData(subjectId, dayIndex, contentId);
+    });
+    target.appendChild(deleteSpan);
+  };
+
+  // 删除可拖拽元素hover时产生的UI
+  const deleteHoverStyle = (event: MouseEvent) => {
+    // 删除position等定位信息、删除<span>删除</span>子元素
+    const target = event.target as HTMLElement;
+    target.style.position = '';
+    target.style.zIndex = '';
+    const deleteSpan = target.querySelector('span');
+    if (deleteSpan) {
+      target.removeChild(deleteSpan);
+    }
+  };
+
+  console.log('tableData', tableData);
+  console.log('allSubjectData', allSubjectData);
+
   return (
     <div className={style.container} key={JSON.stringify(tableData)}>
       <div className={style.left}>
@@ -1135,9 +1219,9 @@ function Arrange() {
             >
               天数/学科
             </div>
-            {mockTableData?.map((d, index) => (
+            {tableData?.map((d, index) => (
               <div
-                key={d.subjectId}
+                key={index}
                 className={classNames(style.dayItem, `line${index + 2}`)}
                 onDragOver={(event) => {
                   event.preventDefault();
@@ -1171,6 +1255,13 @@ function Arrange() {
                 onDrop={handleDropOutside}
               >
                 {calcSubjectName(Number(subjectId))}
+                <span
+                  style={{ color: '#ff0066' }}
+                  // onClick={() => handleDeleteColumn(Number(subjectId))}
+                  onClick={() => handleDeleteTableData(Number(subjectId))}
+                >
+                  删除
+                </span>
               </div>
               {subjectData[subjectId]?.map((v, index: number) => (
                 <div
@@ -1187,10 +1278,22 @@ function Arrange() {
                       draggable
                       key={i}
                       data-contentid={c.contentId}
+                      onMouseEnter={(event) => {
+                        handleMouseEnter(
+                          event,
+                          Number(subjectId),
+                          index,
+                          c.contentId,
+                        );
+                      }}
+                      onMouseLeave={(event) => {
+                        deleteHoverStyle(event);
+                      }}
                       className={style.dayItemChild}
-                      onDragStart={(event) =>
-                        handleDragStart(event, columnIndex, index, c)
-                      }
+                      onDragStart={(event) => {
+                        deleteHoverStyle(event);
+                        handleDragStart(event, columnIndex, index, c);
+                      }}
                     >
                       {c.title}
                     </div>
