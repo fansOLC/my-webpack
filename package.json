@@ -54,6 +54,7 @@
     "webpack-merge": "^5.10.0"
   },
   "dependencies": {
+    "browserslist": "^4.23.0",
     "classnames": "^2.5.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

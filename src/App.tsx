@@ -807,6 +807,7 @@ function Arrange() {
     dayItemIndex: number | null,
     data: any,
   ) => {
+    event.dataTransfer.effectAllowed = 'linkMove'; // 'none'、'copy'、'copyLink'、'copyMove'、'link'、'linkMove'、'move'、
     // 添加拖动时的样式类
     event.target.classList.add('dragging');
     // 给其他列添加禁用样式
@@ -1181,9 +1182,14 @@ function Arrange() {
     deleteSpan.style.bottom = '0';
     deleteSpan.style.color = 'red';
     deleteSpan.style.cursor = 'pointer';
-    deleteSpan.addEventListener('click', () => {
-      console.log('删除');
+    deleteSpan.classList.add('delete-resource');
+    deleteSpan.addEventListener('click', (event) => {
+      console.log('点击删除');
+      event.stopPropagation();
       handleDeleteTableData(subjectId, dayIndex, contentId);
+    });
+    deleteSpan.addEventListener('mousedown', function (event) {
+      event.preventDefault(); // 阻止默认的拖拽操作
     });
     target.appendChild(deleteSpan);
   };
@@ -1257,7 +1263,6 @@ function Arrange() {
                 {calcSubjectName(Number(subjectId))}
                 <span
                   style={{ color: '#ff0066' }}
-                  // onClick={() => handleDeleteColumn(Number(subjectId))}
                   onClick={() => handleDeleteTableData(Number(subjectId))}
                 >
                   删除
