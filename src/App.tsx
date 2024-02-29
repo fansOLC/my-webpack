@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import style from './style.scss';
 import useDropZone from './hooks/useDropZone';
+import { DROP_ABLE_ELE, PLACEHOLDER_ELE } from './dataConfig';
 
 type DragData = {
   columnIndex: number;
@@ -741,7 +742,7 @@ function Arrange() {
   const [tableData, setTableData] = useState([]);
   const [allSubjectData, setAllSubjectData] = useState<ISubjectData[]>([]);
   const [activeSubjectId, setActiveSubjectId] = useState<number>(0);
-  const dragDataRef = useRef<DragData>(null);
+  const dragDataRef = useRef<DragData | null>(null);
 
   const getTableData = () => {
     setTableData(mockTableData);
@@ -755,6 +756,18 @@ function Arrange() {
     getAllSubjectData();
   }, []);
 
+  useEffect(() => {
+    // 变化时，将表格内相应学科滚到视口
+    const subjectEle = document.getElementById(`subject-${activeSubjectId}`);
+    if (subjectEle) {
+      subjectEle.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'end',
+      });
+    }
+  }, [activeSubjectId]);
+
+  // 转换后的表格数据
   const subjectData = useMemo(
     () =>
       allSubjectData.reduce((data, subject) => {
@@ -774,12 +787,16 @@ function Arrange() {
 
   // 计算每一行最高的高度，将每个元素置为最高
   const calcLineHeight = () => {
+    console.log('calcHeight');
     const loop_time = tableData.length + 1;
     Array(loop_time)
-      .fill()
+      .fill(1)
       .forEach((_, index) => {
         const lineIndex = index + 1;
         const elements = document.querySelectorAll(`.line${lineIndex}`);
+        [...elements].map((element) => {
+          (element as HTMLElement).style.height = 'auto';
+        });
         const heights = [...elements].map(
           (element) => (element as HTMLElement).offsetHeight,
         );
@@ -797,19 +814,24 @@ function Arrange() {
     calcLineHeight();
   }, [tableData]);
 
+  // 获取学科名称
   const calcSubjectName = (subjectId: number) =>
     allSubjectData.find((s) => Number(s.subjectId) === Number(subjectId))
       ?.subjectName;
 
+  /**
+   * 开始拖动
+   */
   const handleDragStart = (
-    event: any,
+    event: React.DragEvent<HTMLDivElement>,
     columnIndex: number,
     dayItemIndex: number | null,
     data: any,
   ) => {
+    // 拖动时图标
     event.dataTransfer.effectAllowed = 'linkMove'; // 'none'、'copy'、'copyLink'、'copyMove'、'link'、'linkMove'、'move'、
     // 添加拖动时的样式类
-    event.target.classList.add('dragging');
+    event.target && (event.target as HTMLElement).classList.add('dragging');
     // 给其他列添加禁用样式
     const columns = document.querySelectorAll('[class*="column-"]');
     columns.forEach((column) => {
@@ -817,182 +839,200 @@ function Arrange() {
         column.classList.add('disabled'); // 添加禁用样式
       }
     });
+    // 暂存正在拖动的数据
     dragDataRef.current = {
       columnIndex,
       dayIndex: dayItemIndex,
-      el: event.target,
+      el: event.target as HTMLElement,
       data,
     };
   };
 
-  const calcMousePosition = (event) => {
+  /**
+   * 计算鼠标在目标元素上下的位置占比
+   */
+  const calcMousePosition = (event: React.DragEvent<HTMLElement>) => {
     // 获取元素的高度
-    const elementHeight = event.target.clientHeight;
-
+    const elementHeight = (event.target as HTMLElement).clientHeight;
     // 计算鼠标相对于元素顶部的距离
-    const mouseY = event.clientY - event.target.getBoundingClientRect().top;
-
+    const mouseY =
+      event.clientY - (event.target as HTMLElement).getBoundingClientRect().top;
     // 计算鼠标经过元素高度的百分比
     const mousePercentage = (mouseY / elementHeight) * 100;
     return mousePercentage;
   };
 
-  function createNewElement() {
+  /**
+   * 创建占位元素（用于单元格内排序）
+   */
+  const createNewElement = () => {
     const newElement = document.createElement('div');
     newElement.textContent = '新元素';
-    newElement.classList.add('new-element');
-    newElement.classList.add(style.dayItemChild);
+    newElement.style.color = 'transparent';
     newElement.dataset.draggable = 'true';
+    newElement.classList.add(PLACEHOLDER_ELE);
+    newElement.classList.add(style.dayItemChild);
     return newElement;
-  }
+  };
 
-  // 传入一个元素，该元素高度设为其子元素高度之和
-  function setParentHeightToChildrenSum(parentElement) {
+  // 将传入元素高度设为其子元素高度之和
+  const setParentHeightToChildrenSum = (parentElement: HTMLElement) => {
     const children = parentElement.children;
     let totalHeight = 0;
-
     // 计算所有子元素的高度之和
     for (let i = 0; i < children.length; i++) {
-      totalHeight += children[i].offsetHeight;
+      if (children[i]) {
+        totalHeight += (children[i] as HTMLElement).offsetHeight;
+      }
     }
-
-    // 设置父元素的高度为子元素高度之和
     parentElement.style.height = totalHeight + 'px';
-  }
+  };
 
-  function insertElementAbove(target) {
+  /**
+   * 在传入元素前或后插入占位元素
+   */
+  const insertElement = (target: HTMLElement, position: 'above' | 'blow') => {
     removeNewElement();
     const parentElement = target.parentElement;
     const newElement = createNewElement();
-    parentElement.insertBefore(newElement, target);
+    parentElement &&
+      parentElement.insertBefore(
+        newElement,
+        position === 'above' ? target : target.nextSibling,
+      );
     // 父元素高度设置为所有子元素高度之和
-    setParentHeightToChildrenSum(parentElement);
+    setParentHeightToChildrenSum(parentElement as HTMLElement);
     calcLineHeight();
-  }
+  };
 
-  function insertElementBelow(target) {
-    removeNewElement();
-    const parentElement = target.parentElement;
-    const newElement = createNewElement();
-    parentElement.insertBefore(newElement, target.nextSibling);
-    // 父元素高度设置为所有子元素高度之和
-    setParentHeightToChildrenSum(parentElement);
-    calcLineHeight();
-  }
-
-  function removeNewElement() {
-    const newElement = document.querySelector('.new-element');
+  /**
+   * 删除占位元素PLACEHOLDER_ELE
+   */
+  const removeNewElement = () => {
+    const newElement = document.querySelector(`.${PLACEHOLDER_ELE}`);
     if (newElement) {
       newElement.remove();
     }
-  }
+  };
 
-  // 判断该元素上面的一个兄弟元素是否是类名为.new-element元素
-  function isPreviousElementNewElement(targetElement) {
-    const previousSibling = targetElement.previousElementSibling;
-    if (previousSibling && previousSibling.classList.contains('new-element')) {
-      console.log('上一个元素为new');
-      return true;
-    }
-    return false;
-  }
+  /**
+   * 判断该元素的指定方向的兄弟元素是否是占位元素
+   */
+  const isSiblingNewElement = (
+    targetElement: HTMLElement,
+    direction: 'previous' | 'next',
+  ) => {
+    const sibling =
+      direction === 'previous'
+        ? targetElement.previousElementSibling
+        : targetElement.nextElementSibling;
+    return sibling && sibling.classList.contains(PLACEHOLDER_ELE);
+  };
 
-  // 判断该元素下面的一个兄弟元素是否是类名为.new-element元素
-  function isNextElementNewElement(targetElement) {
-    const nextSibling = targetElement.nextElementSibling;
-    if (nextSibling && nextSibling.classList.contains('new-element')) {
-      return true;
-    }
-    return false;
-  }
-
-  // 下方是不是自己
-  function isBelowSelf(targetElement: HTMLElement) {
+  /**
+   * 判断下方是不是自己
+   */
+  const isBelowSelf = (targetElement: HTMLElement) => {
     if (!targetElement || !dragDataRef.current) return;
     const targetContentId = targetElement.dataset?.contentid;
-    if (
+    return (
       String(targetContentId) === String(dragDataRef.current?.data?.contentId)
-    ) {
-      // 下方是自己
-      return true;
-    } else {
-      // 下方是兄弟
-      return false;
-    }
-  }
+    );
+  };
 
+  /**
+   * 拖动时经过目标元素上方
+   */
   const handleDragOver = (
-    event: any,
+    event: React.DragEvent<HTMLDivElement>,
     columnIndex: number,
     dayIndex: number,
   ) => {
     event.preventDefault();
-
     // 不是同一列||在虚拟元素上方||单元格内无子元素都不处理
     if (
       !dragDataRef?.current ||
       dragDataRef?.current?.columnIndex !== columnIndex ||
       hasLineClass(event.target) ||
-      event.target.classList.contains('new-element')
+      (event.target as HTMLElement).classList.contains(PLACEHOLDER_ELE)
     ) {
       return;
     }
 
-    // 兄弟元素拖拽
     if (
       dragDataRef.current &&
       dragDataRef.current.columnIndex === columnIndex &&
       dragDataRef.current.dayIndex === dayIndex
     ) {
-      const isSelf = isBelowSelf(event.target);
+      const isSelf = isBelowSelf(event.target as HTMLElement);
+      // 自己
       if (isSelf) {
         return;
       }
-      // return;
     }
 
     // 跨单元格拖拽
     const distance = calcMousePosition(event);
-    if (distance <= 50 && !isPreviousElementNewElement(event.target)) {
+    if (
+      distance <= 50 &&
+      !isSiblingNewElement(event.target as HTMLElement, 'previous')
+    ) {
       // 动态生成一个元素，插入该元素上方
-      insertElementAbove(event.target);
-    } else if (distance > 50 && !isNextElementNewElement(event.target)) {
+      insertElement(event.target as HTMLElement, 'above');
+    } else if (
+      distance > 50 &&
+      !isSiblingNewElement(event.target as HTMLElement, 'next')
+    ) {
       // 动态生成一个元素，插入该元素下方
-      insertElementBelow(event.target);
+      insertElement(event.target as HTMLElement, 'blow');
     }
   };
 
+  /**
+   * 清除拖拽元素可放置样式
+   */
   const clearDropStyle = () => {
-    document.querySelectorAll('.drop-over').forEach((el) => {
-      el.classList.remove('drop-over');
+    document.querySelectorAll(`.${DROP_ABLE_ELE}`).forEach((el) => {
+      el.classList.remove(DROP_ABLE_ELE);
     });
   };
 
-  function hasLineClass(target) {
-    // 匹配以 "line" 开头的类名
-    const regex = /^line\d+$/;
+  /**
+   * 匹配以 "line" 开头的类名
+   */
+  const hasLineClass = (target: HTMLElement, class_name = 'line') => {
+    // const regex = /^line\d+$/;
+    const regex = new RegExp(`^${class_name}\\d+$`);
     return Array.from(target.classList).some((className) =>
       regex.test(className),
     );
-  }
+  };
 
-  const handleDragEnter = (event: any, columnIndex: number) => {
+  /**
+   * 拖拽元素进入目标元素,触发一次
+   */
+  const handleDragEnter = (
+    event: React.DragEvent<HTMLElement>,
+    columnIndex: number,
+  ) => {
     event.preventDefault();
     clearDropStyle();
     if (
       dragDataRef.current &&
       dragDataRef.current.columnIndex === columnIndex &&
       // 目标元素含类名包含line
-      hasLineClass(event.target)
+      hasLineClass(event.target as HTMLElement)
     ) {
       removeNewElement();
-      event.target.classList.add('drop-over'); // 可放置标识
+      (event.target as HTMLElement).classList.add(DROP_ABLE_ELE); // 可放置标识
     }
   };
 
-  // 参数为元素类名，返回一个对象：该元素前一个元素属性data-contentid值及后一个
-  function getContentIds(className: string) {
-    const element = document.querySelector(`.${className}`);
+  /**
+   * 参数为元素类名，返回一个对象：该元素前一个元素属性data-contentid值及后一个
+   */
+  const getContentIds = (className: string) => {
+    const element: HTMLElement | null = document.querySelector(`.${className}`);
     if (!element) {
       return null; // 如果找不到对应类名的元素，则返回 null
     }
@@ -1000,15 +1040,22 @@ function Arrange() {
     const prevElement = element.previousElementSibling;
     const nextElement = element.nextElementSibling;
 
-    const prevContentId = prevElement ? prevElement?.dataset?.contentid : null;
-    const nextContentId = nextElement ? nextElement?.dataset?.contentid : null;
+    const prevContentId = prevElement
+      ? (prevElement as HTMLElement)?.dataset?.contentid
+      : null;
+    const nextContentId = nextElement
+      ? (nextElement as HTMLElement)?.dataset?.contentid
+      : null;
 
     return {
       prevContentId,
       nextContentId,
     };
-  }
+  };
 
+  /**
+   * 拖拽元素放下
+   */
   const handleDrop = (event: any, columnIndex: number, dayIndex: number) => {
     event.preventDefault();
     clearDropStyle();
@@ -1182,6 +1229,7 @@ function Arrange() {
     deleteSpan.style.bottom = '0';
     deleteSpan.style.color = 'red';
     deleteSpan.style.cursor = 'pointer';
+    deleteSpan.style.zIndex = '1';
     deleteSpan.classList.add('delete-resource');
     deleteSpan.addEventListener('click', (event) => {
       console.log('点击删除');
@@ -1196,24 +1244,23 @@ function Arrange() {
 
   // 删除可拖拽元素hover时产生的UI
   const deleteHoverStyle = (event: MouseEvent) => {
-    // 删除position等定位信息、删除<span>删除</span>子元素
+    // // 删除position等定位信息、删除<span>删除</span>子元素
     const target = event.target as HTMLElement;
     target.style.position = '';
     target.style.zIndex = '';
-    const deleteSpan = target.querySelector('span');
-    if (deleteSpan) {
-      target.removeChild(deleteSpan);
-    }
+    const deleteSpans = document.querySelectorAll('.delete-resource');
+    deleteSpans.forEach((span) => span.remove());
   };
 
   console.log('tableData', tableData);
   console.log('allSubjectData', allSubjectData);
 
   return (
-    <div className={style.container} key={JSON.stringify(tableData)}>
+    // <div className={style.container} key={JSON.stringify(tableData)}>
+    <div className={style.container}>
       <div className={style.left}>
         <div className={style.columns}>
-          <div className={style.column}>
+          <div className={classNames(style.column, 'fixcolumn')}>
             <div
               className={classNames(style.dayItem, 'line1', style.first)}
               onDrop={handleDropOutside}
@@ -1222,6 +1269,7 @@ function Arrange() {
                 clearDropStyle();
                 removeNewElement();
               }}
+              // style={{ left: 0, top: 0, right: 0, bottom: 0 }}
             >
               天数/学科
             </div>
@@ -1249,6 +1297,7 @@ function Arrange() {
               key={subjectId}
             >
               <div
+                id={`subject-${subjectId}`}
                 className={classNames(style.dayItem, 'line1', style.first)}
                 onDragOver={(event) => {
                   event.preventDefault();
@@ -1271,6 +1320,7 @@ function Arrange() {
               {subjectData[subjectId]?.map((v, index: number) => (
                 <div
                   className={classNames(style.dayItem, `line${index + 2}`)}
+                  style={{ position: 'relative', zIndex: 3 }}
                   key={index}
                   onDragOver={(event) =>
                     handleDragOver(event, columnIndex, index)
@@ -1292,6 +1342,7 @@ function Arrange() {
                         );
                       }}
                       onMouseLeave={(event) => {
+                        console.log('离开');
                         deleteHoverStyle(event);
                       }}
                       className={style.dayItemChild}
