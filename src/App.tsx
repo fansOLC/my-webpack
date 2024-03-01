@@ -742,6 +742,7 @@ function Arrange() {
   const [tableData, setTableData] = useState([]);
   const [allSubjectData, setAllSubjectData] = useState<ISubjectData[]>([]);
   const [activeSubjectId, setActiveSubjectId] = useState<number>(0);
+  const [isFold, setIsFold] = useState(false);
   const dragDataRef = useRef<DragData | null>(null);
 
   const getTableData = () => {
@@ -1216,12 +1217,11 @@ function Arrange() {
 
   // 可拖拽元素hover事件
   const handleMouseEnter = (
-    event: MouseEvent,
+    event: React.MouseEvent<HTMLElement, MouseEvent>,
     subjectId: number,
     dayIndex: number,
     contentId: string,
   ) => {
-    console.log('event.target', event.target);
     const target = event.target as HTMLElement;
     target.style.position = 'relative';
     target.style.zIndex = '1000';
@@ -1247,13 +1247,25 @@ function Arrange() {
   };
 
   // 删除可拖拽元素hover时产生的UI
-  const deleteHoverStyle = (event: MouseEvent) => {
+  const deleteHoverStyle = (
+    event: React.MouseEvent<HTMLElement, MouseEvent>,
+  ) => {
     // // 删除position等定位信息、删除<span>删除</span>子元素
     const target = event.target as HTMLElement;
     target.style.position = '';
     target.style.zIndex = '';
     const deleteSpans = document.querySelectorAll('.delete-resource');
     deleteSpans.forEach((span) => span.remove());
+  };
+
+  const handleFold = () => {
+    const ele = document.querySelectorAll(`.${style.right}`);
+    if (ele[0]) {
+      // ele[0].style.display = 'none';
+      ele[0].style.width = '0px';
+      setIsFold(true);
+    }
+    console.log('ele', ele);
   };
 
   console.log('tableData', tableData);
@@ -1365,36 +1377,57 @@ function Arrange() {
         </div>
       </div>
       <div className={style.right}>
-        <div className={style.subjectName}>
-          {allSubjectData?.map((d) => (
-            <span
-              key={d.subjectId}
-              onClick={() => handleSubjectClick(d.subjectId)}
-              className={
-                d.subjectId === activeSubjectId
-                  ? style.activeSubject
-                  : undefined
-              }
-            >
-              {d.subjectName}({d?.contents?.length || 0})
-            </span>
-          ))}
+        <div style={isFold ? { display: 'none' } : { display: 'block' }}>
+          <div className={style.subjectName}>
+            {allSubjectData?.map((d) => (
+              <span
+                key={d.subjectId}
+                onClick={() => handleSubjectClick(d.subjectId)}
+                className={
+                  d.subjectId === activeSubjectId
+                    ? style.activeSubject
+                    : undefined
+                }
+              >
+                {d.subjectName}({d?.contents?.length || 0})
+              </span>
+            ))}
+          </div>
+          <div className={style.subjectContents}>
+            {allSubjectData[currSubjectDataIndex]?.contents.map((d) => (
+              <div
+                className={style.resourceItem}
+                key={d.contentId}
+                draggable
+                onDragStart={(event) =>
+                  handleDragStart(event, currSubjectDataIndex, null, d)
+                }
+              >
+                {d.title}
+              </div>
+            ))}
+          </div>
         </div>
-        <div className={style.subjectContents}>
-          {allSubjectData[currSubjectDataIndex]?.contents.map((d) => (
-            <div
-              className={style.resourceItem}
-              key={d.contentId}
-              draggable
-              onDragStart={(event) =>
-                handleDragStart(event, currSubjectDataIndex, null, d)
-              }
-            >
-              {d.title}
-            </div>
-          ))}
-        </div>
+        {!isFold && (
+          <div className={style.fold} onClick={handleFold}>
+            收起
+          </div>
+        )}
       </div>
+      {isFold && (
+        <div
+          onClick={() => {
+            setIsFold(false);
+            const ele = document.querySelectorAll(`.${style.right}`);
+            if (ele[0]) {
+              // ele[0].style.display = 'block';
+              ele[0].style.width = '340px';
+            }
+          }}
+        >
+          展开
+        </div>
+      )}
     </div>
   );
 }
