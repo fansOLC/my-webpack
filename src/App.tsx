@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import style from './style.scss';
 import useDropZone from './hooks/useDropZone';
-import { DROP_ABLE_ELE, PLACEHOLDER_ELE } from './dataConfig';
+import { DRAGGING_ELE, DROP_ABLE_ELE, PLACEHOLDER_ELE } from './dataConfig';
 
 type DragData = {
   columnIndex: number;
@@ -831,7 +831,7 @@ function Arrange() {
     // 拖动时图标
     event.dataTransfer.effectAllowed = 'linkMove'; // 'none'、'copy'、'copyLink'、'copyMove'、'link'、'linkMove'、'move'、
     // 添加拖动时的样式类
-    event.target && (event.target as HTMLElement).classList.add('dragging');
+    event.target && (event.target as HTMLElement).classList.add(DRAGGING_ELE);
     // 给其他列添加禁用样式
     const columns = document.querySelectorAll('[class*="column-"]');
     columns.forEach((column) => {
@@ -953,23 +953,21 @@ function Arrange() {
     if (
       !dragDataRef?.current ||
       dragDataRef?.current?.columnIndex !== columnIndex ||
-      hasLineClass(event.target) ||
-      (event.target as HTMLElement).classList.contains(PLACEHOLDER_ELE)
+      hasLineClass(event.target as HTMLElement) ||
+      (event.target as HTMLElement).classList.contains(PLACEHOLDER_ELE) ||
+      isBelowSelf(event.target as HTMLElement) // 自己
     ) {
       return;
     }
 
-    if (
-      dragDataRef.current &&
-      dragDataRef.current.columnIndex === columnIndex &&
-      dragDataRef.current.dayIndex === dayIndex
-    ) {
-      const isSelf = isBelowSelf(event.target as HTMLElement);
-      // 自己
-      if (isSelf) {
-        return;
-      }
-    }
+    // if (
+    //   dragDataRef.current &&
+    //   dragDataRef.current.columnIndex === columnIndex &&
+    //   dragDataRef.current.dayIndex === dayIndex &&
+    //   isBelowSelf(event.target as HTMLElement) // 自己
+    // ) {
+    //   return;
+    // }
 
     // 跨单元格拖拽
     const distance = calcMousePosition(event);
@@ -1056,12 +1054,16 @@ function Arrange() {
   /**
    * 拖拽元素放下
    */
-  const handleDrop = (event: any, columnIndex: number, dayIndex: number) => {
+  const handleDrop = (
+    event: React.DragEvent<HTMLElement>,
+    columnIndex: number,
+    dayIndex: number,
+  ) => {
     event.preventDefault();
     clearDropStyle();
     // 移除拖动时的样式类
-    document.querySelectorAll('.dragging').forEach((el) => {
-      el.classList.remove('dragging');
+    document.querySelectorAll(`.${DRAGGING_ELE}`).forEach((el) => {
+      el.classList.remove(DRAGGING_ELE);
     });
     // 移除其他列的禁用样式
     const columns = document.querySelectorAll('[class*="column-"]');
@@ -1071,17 +1073,19 @@ function Arrange() {
     if (
       !dragDataRef.current ||
       dragDataRef.current.columnIndex !== columnIndex ||
-      isBelowSelf(event.target)
+      isBelowSelf(event.target as HTMLElement)
     ) {
       removeNewElement();
       return;
     }
     const tempdata = JSON.parse(JSON.stringify(tableData));
     // 该放置元素是否为动态生成的占位元素new-element
-    const isNewElement = event.target?.classList?.contains('new-element');
+    const isNewElement = (event.target as HTMLElement)?.classList?.contains(
+      PLACEHOLDER_ELE,
+    );
     if (isNewElement) {
       // 得到其序号
-      const indexObj = getContentIds('new-element');
+      const indexObj = getContentIds(PLACEHOLDER_ELE);
       if (indexObj?.prevContentId) {
         // 插入到前一个元素之后
         const tempIndex = tempdata[dayIndex].contents.findIndex(
@@ -1143,8 +1147,8 @@ function Arrange() {
   const handleDropOutside = () => {
     // 拖拽元素放置在可放置区域外
     // 移除拖动时的样式类
-    document.querySelectorAll('.dragging').forEach((el) => {
-      el.classList.remove('dragging');
+    document.querySelectorAll(`.${DRAGGING_ELE}`).forEach((el) => {
+      el.classList.remove(DRAGGING_ELE);
     });
     // 移除其他列的禁用样式
     const columns = document.querySelectorAll('[class*="column-"]');
@@ -1155,7 +1159,7 @@ function Arrange() {
     removeNewElement();
   };
 
-  useDropZone(style.columns, {
+  useDropZone(style.left, {
     onDropInside: () => {
       console.log('里面');
     },
