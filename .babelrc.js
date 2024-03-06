@@ -10,7 +10,7 @@ module.exports = {
       {
         useBuiltIns: 'usage',
         corejs: '3.35.1',
-        modules: 'commonjs',
+        // modules: 'commonjs', // 设为commonjs后不能tree-shaking
       },
     ],
     '@babel/preset-react',

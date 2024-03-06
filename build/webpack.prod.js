@@ -7,10 +7,14 @@ const baseConfig = require('./webpack.base.js');
 const { merge } = require('webpack-merge');
 const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 
 module.exports = merge(baseConfig, {
   mode: 'production',
   plugins: [
+    new MiniCssExtractPlugin({
+      filename: 'css/[name].[contenthash:8].css', // 设置生成的css文件名
+    }),
     new CopyPlugin({
       patterns: [
         {
@@ -23,11 +27,13 @@ module.exports = merge(baseConfig, {
         },
       ],
     }),
-    new MiniCssExtractPlugin({
-      filename: 'css/[name].[contenthash:8].css', // 设置生成的css文件名
-    }),
   ],
   optimization: {
+    //minimize: true, // 是否开启压缩
+    minimizer: [
+      `...`, // 配置后，analy中speed-measure-webpack-plugin包不兼容webpack5的这个特性会报错
+      new CssMinimizerPlugin(), // 压缩css
+    ],
     splitChunks: {
       chunks: 'all',
       // 分隔代码
