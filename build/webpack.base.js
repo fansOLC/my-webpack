@@ -28,7 +28,7 @@ module.exports = {
     },
   },
   externals: {
-    react: 'React',
+    react: 'React', // 配置完externals热更新失效了？？？
     'react-dom': 'ReactDOM',
     // 'react-dom/client': 'ReactDOM',
   },
