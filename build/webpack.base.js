@@ -17,7 +17,7 @@ module.exports = {
     clean: true,
     filename: 'js/[name].[chunkhash:8].js',
     path: path.resolve(__dirname, '../dist'),
-    publicPath: '/', // 打包后文件的公共前缀路径
+    publicPath: '/my-webpack', // 打包后文件的公共前缀路径
   },
   resolve: {
     // 查找第三方模块只在本项目的node_modules中查找
