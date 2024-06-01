@@ -1,8 +1,13 @@
 name: 项目打包
+
 on:
   pull_request:
     branches:
     - main
+    
+permissions:
+  contents: write
+  
 jobs:
   npm-build:
     name: deploy
