@@ -11,6 +11,14 @@ const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 
 module.exports = merge(baseConfig, {
   mode: 'production',
+  externals: {
+    // 当前热更新插件@pmmmwh/react-refresh-webpack-plugin版本，如果配置了externals热更新失效。
+    // 当前临时解决方案：开发环境不配置externals，生产环境配置。
+    // 持续关注版本更新解决方案
+    react: 'React',
+    'react-dom': 'ReactDOM',
+    // 'react-dom/client': 'ReactDOM',
+  },
   plugins: [
     new MiniCssExtractPlugin({
       filename: 'css/[name].[contenthash:8].css', // 设置生成的css文件名

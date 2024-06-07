@@ -28,9 +28,11 @@ module.exports = {
     },
   },
   externals: {
-    react: 'React', // 配置完externals热更新失效了？？？
-    'react-dom': 'ReactDOM',
-    // 'react-dom/client': 'ReactDOM',
+    // 当前热更新插件@pmmmwh/react-refresh-webpack-plugin版本，如果配置了externals热更新失效。
+    // 当前临时解决方案：开发环境不配置externals，生产环境webpack.prod.js中配置。
+    // 持续关注版本更新解决方案
+    // react: 'React',
+    // 'react-dom': 'ReactDOM',
   },
   module: {
     rules: [
