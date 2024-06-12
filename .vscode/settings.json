@@ -3,21 +3,16 @@
  * 注意：这个设置只针对vscode，如果你使用其他的编辑器，可能需要相应的设置
  */
 {
+  "eslint.enable": true, // 是否启用eslint
+  "editor.formatOnSave": true, // 是否保存时，进行格式化
+  "editor.defaultFormatter": "esbenp.prettier-vscode", // 默认的格式化器
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit",
-    "source.fixAll.tslint": "explicit"
-  },
-  "editor.formatOnSave": true,
-  "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[javascriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "source.fixAll.eslint": "explicit"
   }
 }
