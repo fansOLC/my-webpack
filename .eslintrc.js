@@ -28,8 +28,10 @@ module.exports = {
   },
   plugins: ['@typescript-eslint', 'react'],
   rules: {
+    'prettier/prettier': 'error',
     '@typescript-eslint/no-var-requires': 0,
-    semi: 0,
-    quotes: 2,
+    // 变量未使用，告警
+    'no-unused-vars': 2, // 将未使用变量的错误设为警告
+    'no-console': 1,
   },
 };

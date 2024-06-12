@@ -1,7 +1,8 @@
 import React from 'react';
 import style from './style.scss';
 import { add } from './utils';
-
+const name = 'olc';
+console.log(name);
 export default function App() {
   return (
     <div className={style.container}>
