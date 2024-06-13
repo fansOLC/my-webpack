@@ -1,21 +1,30 @@
 name: Tag on Merge
 
+#该配置表示，当PR被合并到 main 分支并关闭时触发工作流。
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
 
-permissions: #设置必要的权限以允许创建标签。
+permissions:
   contents: write
 
 jobs:
   tag:
+    if: github.event.pull_request.merged == true #这部分确保只有在PR被合并时才执行该工作流。
     name: Tag on Merge
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      #配置 Git 用户信息，确保能够正确推送标签。
+      - name: Set up git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
       #获取当前日期并存储到环境变量 DATE 中。
       - name: Get the current date
@@ -27,7 +36,7 @@ jobs:
         id: tag_number
         run: |
           git fetch --tags
-          latest_tag=$(git tag -l "${{ env.DATE }}-*|sort -V|tail -n1")
+          latest_tag=$(git tag -l "${{ env.DATE }}-*" | sort -V | tail -n1)
           if [ -z "$latest_tag" ]; then
             echo "TAG_NUMBER=1" >> $GITHUB_ENV
           else
@@ -35,11 +44,11 @@ jobs:
             echo "TAG_NUMBER=$((latest_number + 1))" >> $GITHUB_ENV
           fi
 
-      #创建新的标签并推送到远程仓库。
       - name: Create new tag
         id: new_tag
         run: |
           new_tag="${{ env.DATE }}-${{ env.TAG_NUMBER }}"
+          echo "Creating tag $new_tag"
           git tag $new_tag
           git push origin $new_tag
         env:
