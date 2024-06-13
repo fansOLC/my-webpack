@@ -1,0 +1,47 @@
+name: Tag on Merge
+
+on:
+  push:
+    branches:
+      - main
+
+permissions: #设置必要的权限以允许创建标签。
+  contents: write
+
+jobs:
+  tag:
+    name: Tag on Merge
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      #获取当前日期并存储到环境变量 DATE 中。
+      - name: Get the current date
+        id: date
+        run: echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+
+      #获取最新的标签号，如果没有标签，则设置为1，否则将最新标签号+1。
+      - name: Get the latest tag number
+        id: tag_number
+        run: |
+          git fetch --tags
+          latest_tag=$(git tag -l "${{ env.DATE }}-*|sort -V|tail -n1")
+          if [ -z "$latest_tag" ]; then
+            echo "TAG_NUMBER=1" >> $GITHUB_ENV
+          else
+            latest_number=${latest_tag##*-}
+            echo "TAG_NUMBER=$((latest_number + 1))" >> $GITHUB_ENV
+          fi
+
+      #创建新的标签并推送到远程仓库。
+      - name: Create new tag
+        id: new_tag
+        run: |
+          new_tag="${{ env.DATE }}-${{ env.TAG_NUMBER }}"
+          git tag $new_tag
+          git push origin $new_tag
+        env:
+          DATE: ${{ env.DATE }}
+          TAG_NUMBER: ${{ env.TAG_NUMBER }}
